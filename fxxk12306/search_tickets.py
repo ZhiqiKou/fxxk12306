@@ -49,6 +49,7 @@ class Tickets(object):
             charset='utf8',
         )
         cursor = conn.cursor()
+        # 查找对应车站代码
         get_from_code = """SELECT code FROM station_info WHERE name='%s'""" % self.from_station
         cursor.execute(get_from_code)
         from_code = cursor.fetchone()[0]
@@ -81,6 +82,10 @@ class Tickets(object):
         station_dict = json.loads(r.text)
         result = station_dict['data']['result']
         res_map = station_dict['data']['map']
+
+        # 所有车票的列表
+        all_tickets = []
+
         info_table = prettytable.PrettyTable(["日期", "车次", "出发站/到达站", "出发时间/到达时间",
                                   "历时", "商务座、特等座", "一等座", "二等座",
                                   "软卧", "硬卧", "硬座", "无座", "备注"])
@@ -90,28 +95,56 @@ class Tickets(object):
             # 显示列车详情
             from_station = res_map[info[6]]
             to_station = res_map[info[7]]
+            # 单张车票信息字典
+            ticket_info = {}
+            ticket_info["date"] = self.train_date
+            ticket_info["trains"] = info[3]
+            ticket_info["from_station"] = from_station
+            ticket_info["to_station"] = to_station
 
             if info[1] == '列车停运':
-                # print('''【停止运行】出发时间:%s  车次:%s  出发站：%s 到达站:%s ''' %
-                #       (self.train_date, info[3], from_station, to_station))
-                info_table.add_row([self.train_date, color.yellow(info[3]), color.green(from_station) + "\n" + color.red(to_station),
-                                     "-- \n --", '--', '--', '--', '--', '--', '--', '--', '--', '列车停运'])
-                continue
+                ticket_info["from_time"] = '--'
+                ticket_info["to_time"] = '--'
+                ticket_info["total_time"] = '--'
+                ticket_info["tdz"] = '--'
+                ticket_info["ydz"] = '--'
+                ticket_info["edz"] = '--'
+                ticket_info["rw"] = '--'
+                ticket_info["yw"] = '--'
+                ticket_info["yz"] = '--'
+                ticket_info["wz"] = '--'
+                ticket_info["note"] = '列车停运'
+            else:
+                for i in range(len(info)):
+                    if info[i] == '':
+                        info[i] = '--'
+                ticket_info["from_time"] = info[8]
+                ticket_info["to_time"] = info[9]
+                ticket_info["total_time"] = info[10]
+                ticket_info["tdz"] = info[32]
+                ticket_info["ydz"] = info[31]
+                ticket_info["edz"] = info[30]
+                ticket_info["rw"] = info[23]
+                ticket_info["yw"] = info[28]
+                ticket_info["yz"] = info[29]
+                ticket_info["wz"] = info[26]
+                ticket_info["note"] = '--'
 
-            for i in range(len(info)):
-                if info[i] == '':
-                    info[i] = '--'
-            info_table.add_row([self.train_date, color.yellow(info[3]), color.green(from_station) + "\n" + color.red(to_station),
-                                color.green(info[8]) + "\n" + color.red(info[9]), color.blue(info[10]), info[32], info[31],
-                                info[30], info[23], info[28], info[29], info[26], '-'])
-            # print('''* 出发时间:%s  车次:%s  出发站：%s 到达站:%s  出发时间:%s 到达时间:%s  历时:%s''' %
-            #       (self.train_date, info[3], from_station, to_station, info[8], info[9], info[10]))
-            # print('''* 商务座、特等座:%s   一等座:%s   二等座:%s   软卧:%s   硬卧:%s   硬座:%s   无座:%s ''' %
-            #       (info[32], info[31], info[30], info[23], info[28], info[29], info[26]))
+            all_tickets.append(ticket_info)
+
+            info_table.add_row([ticket_info["date"], color.yellow(ticket_info["trains"]),
+                                color.green(ticket_info["from_station"]) + "\n" + color.red(ticket_info["to_station"]),
+                                color.green(ticket_info["from_time"]) + "\n" + color.red(ticket_info["to_time"]),
+                                color.blue(ticket_info["total_time"]), ticket_info["tdz"], ticket_info["ydz"],
+                                ticket_info["edz"], ticket_info["rw"], ticket_info["yw"], ticket_info["yz"],
+                                ticket_info["wz"], ticket_info["note"]])
+
         print(info_table)
+        return all_tickets
 
 
 if __name__ == '__main__':
     # 测试信息
-    ticket = Tickets('2019-01-31', '洛阳', '北京')
+    ticket = Tickets('2019-01-31', '洛阳', '郑州')
     ticket.search()
+
