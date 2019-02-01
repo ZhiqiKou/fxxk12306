@@ -10,7 +10,11 @@ class TargetTicket(object):
         self.trains = trains
 
     def screening_trains(self, all_tickets):
-        # 得到指定车次信息
+        """
+        得到指定车次信息
+        :param all_tickets: 所选日期内所有列车
+        :return: 目标车次的余票信息
+        """
         target_dir = {}
         for ticket in all_tickets:
             if ticket['trains'] in self.trains:
@@ -36,11 +40,23 @@ class TargetTicket(object):
         return target_dir
 
     def screening_seat(self, all_tickets, trains_seat_dir):
+        """
+        筛选车次车票
+        :param all_tickets: 所选日期内所有列车
+        :param trains_seat_dir: 想要购买的车次和席位
+        :return: 有余票的车次和席位
+        """
         target_dir = self.screening_trains(all_tickets)
         for key in trains_seat_dir:
             print(key)
             for seat in trains_seat_dir[key]:
                 print(target_dir[key][seat])
+                tickets_num = target_dir[key][seat]
+                if tickets_num != '无':
+                    # 购买车票
+                    print('购买{0}车次，{1}车票'.format(key, seat))
+                    # 结束循环
+                    return key, seat
 
 
 if __name__ == '__main__':
